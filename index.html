@@ -1,100 +1,93 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Movie With Ads</title>
-
-<style>
-body { font-family: Arial; margin:0; padding:20px; background:#f2f2f2; }
-.btn { padding:12px 20px; background:#007bff; color:#fff; border:0; border-radius:6px; cursor:pointer; font-size:18px; }
-
-/* Overlay Interstitial */
-.overlay {
-    position:fixed; inset:0; background:rgba(0,0,0,0.75);
-    display:flex; align-items:center; justify-content:center;
-    z-index:9999; visibility:hidden; opacity:0; transition:.2s;
-}
-.overlay.show { visibility:visible; opacity:1; }
-
-.ad-box {
-    width:90%; max-width:900px; background:#fff; border-radius:10px;
-    padding:12px; box-shadow:0 10px 30px rgba(0,0,0,0.4);
-}
-.close-btn[disabled] { opacity:.5; cursor:not-allowed; }
-
-/* Unlock Screen */
-#unlockScreen {
-    position:fixed; inset:0; background:#111;
-    color:#fff; display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    z-index:9999; visibility:hidden; opacity:0; transition:.25s;
-}
-#unlockScreen.show { visibility:visible; opacity:1; }
-
-.unlock-btn {
-    margin-top:20px; padding:14px 22px;
-    background:#00c851; color:#fff;
-    border:0; border-radius:8px; font-size:20px; cursor:pointer;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Movie Player - Fixed Mobile & Popunder</title>
+  <style>
+    :root{--bg:#f2f2f2;--btn:#007bff}
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:var(--bg);-webkit-font-smoothing:antialiased}
+    h2,p{margin:0 0 10px}
+    .btn{padding:12px 20px;background:var(--btn);color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:18px}
+    /* Overlay Interstitial */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;z-index:9999;visibility:hidden;opacity:0;transition:opacity .18s, visibility .18s}
+    .overlay.show{visibility:visible;opacity:1}
+    .ad-box{width:92%;max-width:760px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.35);color:#000;position:relative;max-height:86vh;overflow:auto}
+    .ad-title{font-weight:700;margin-bottom:8px}
+    .ad-note{font-size:13px;color:#333;margin-top:8px}
+    /* CLOSE BUTTON (mobile friendly, large & fixed inside ad-box) */
+    .close-btn{position:absolute;top:10px;right:10px;background:#28a745;color:#fff;border:0;padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer;z-index:50;box-shadow:0 6px 14px rgba(0,0,0,0.2)}
+    .close-btn[disabled]{opacity:.45;cursor:not-allowed}
+    /* Make sure on small screens it's easier to tap */
+    @media (max-width:480px){
+      .close-btn{padding:14px 16px;font-size:16px;right:12px;top:12px}
+      .ad-box{padding:18px;border-radius:14px}
+    }
+    /* Unlock screen */
+    #unlockScreen{position:fixed;inset:0;background:#0f0f0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;visibility:hidden;opacity:0;transition:opacity .18s}
+    #unlockScreen.show{visibility:visible;opacity:1}
+    .unlock-btn{margin-top:18px;padding:14px 22px;background:#0069d9;color:#fff;border:0;border-radius:10px;font-size:18px;cursor:pointer}
+  </style>
 </head>
-
 <body>
 
-<h2>Movie Player</h2>
-<p>Movie dekhne se pehle short ads dikhaye jayenge.</p>
+  <h2>Movie Player</h2>
+  <p>Movie dekhne se pehle short ads dikhaye jayenge. (Mobile tested)</p>
 
-<button id="startMovie" class="btn">Play Movie</button>
+  <button id="startMovie" class="btn">Play Movie</button>
 
-<!-- ───── FIRST INTERSTITIAL POPUP ───── -->
-<div id="interstitial1" class="overlay">
-    <div class="ad-box">
-        <h3>Sponsored</h3>
-        <p>Ad loading... Please wait <span id="count1">5</span> sec</p>
+  <!-- FIRST INTERSTITIAL -->
+  <div id="interstitial1" class="overlay" aria-hidden="true">
+    <div class="ad-box" role="dialog" aria-modal="true" aria-labelledby="ad1title">
+      <div id="ad1title" class="ad-title">Sponsored</div>
+      <p>Ad loading... Please wait <span id="count1">5</span>s</p>
 
-        <!-- Your Adsterra Interstitial (native) -->
-        <script async data-cfasync="false" src="//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js"></script>
-        <div id="container-03a29260fe0435d3922b726bb7da0b06"></div>
+      <!-- Native interstitial container (unique id) -->
+      <div id="container-native-1"></div>
 
-        <br>
-        <button id="close1" class="btn" disabled>Close Ad</button>
+      <!-- Close button (mobile-friendly, visible) -->
+      <button id="close1" class="close-btn" disabled>Close</button>
+
+      <div class="ad-note">If ad takes longer, wait a few seconds then tap Close.</div>
     </div>
-</div>
+  </div>
 
-<!-- ───── UNLOCK SCREEN ───── -->
-<div id="unlockScreen">
-    <h2>Movie Unlock Required</h2>
-    <p>Continue dabate hi movie unlock ho jayegi</p>
-    <button id="continueBtn" class="unlock-btn">Continue</button>
-</div>
-
-<!-- ───── SECOND INTERSTITIAL / POPUNDER ───── -->
-<div id="interstitial2" class="overlay">
-    <div class="ad-box">
-        <h3>Sponsored</h3>
-        <p>Ad will close soon...</p>
-
-        <!-- OPTION 1 → Native Interstitial AGAIN -->
-        <script async data-cfasync="false" src="//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js"></script>
-        <div id="container-03a29260fe0435d3922b726bb7da0b06"></div>
-
-        <!-- OPTION 2 → Your POPUNDER CODE (LEGAL because user action triggers it) -->
-        <!-- UNCOMMENT if you want popunder: 
-        <script type='text/javascript' src='//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js'></script>
-        -->
-        <br>
-
-        <button id="close2" class="btn">Open Movie</button>
+  <!-- UNLOCK SCREEN -->
+  <div id="unlockScreen" aria-hidden="true">
+    <div style="text-align:center;padding:22px;">
+      <h2 style="color:#fff;margin-bottom:8px">Movie Unlock Required</h2>
+      <p style="color:#ddd;margin-bottom:12px">Continue pe tap karne se second ad open hoga (user action).</p>
+      <button id="continueBtn" class="unlock-btn">Continue</button>
     </div>
-</div>
+  </div>
 
+  <!-- SECOND INTERSTITIAL -->
+  <div id="interstitial2" class="overlay" aria-hidden="true">
+    <div class="ad-box" role="dialog" aria-modal="true" aria-labelledby="ad2title">
+      <div id="ad2title" class="ad-title">Sponsored</div>
+      <p>Please wait... <span id="count2">3</span>s</p>
+
+      <!-- Optional second native container (unique id) -->
+      <div id="container-native-2"></div>
+
+      <button id="close2" class="close-btn" disabled>Open Movie</button>
+      <div class="ad-note">If popunder blocked by browser, try enabling popups for this site.</div>
+    </div>
+  </div>
 
 <script>
-// Movie Link
+/* -------------------------
+  CONFIG
+----------------------------*/
 const movieURL = "https://drive.google.com/file/d/1MFADDsjWFhEUqimdnv2RXbQTSQChP89q/view?usp=drivesdk";
 
-// Elements
+// Ad script sources (use your own units)
+const nativeScriptSrc = "//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js";
+const popunderScriptSrc = "//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js";
+
+/* -------------------------
+  ELEMENTS
+----------------------------*/
 const startMovie = document.getElementById("startMovie");
 const inter1 = document.getElementById("interstitial1");
 const inter2 = document.getElementById("interstitial2");
@@ -103,44 +96,127 @@ const close1 = document.getElementById("close1");
 const close2 = document.getElementById("close2");
 const continueBtn = document.getElementById("continueBtn");
 const count1 = document.getElementById("count1");
+const count2 = document.getElementById("count2");
 
-// Step 1 → User starts
-startMovie.onclick = () => {
-    inter1.classList.add("show");
-    startCountdown1();
-};
-
-// Step 1 Count
-function startCountdown1(){
-    let sec = 5;
-    const timer = setInterval(() => {
-        sec--;
-        count1.textContent = sec;
-        if(sec <= 0){
-            clearInterval(timer);
-            close1.disabled = false;
-        }
-    },1000);
+/* -------------------------
+  HELPERS
+----------------------------*/
+function show(el){
+  el.classList.add("show");
+  el.setAttribute("aria-hidden","false");
+}
+function hide(el){
+  el.classList.remove("show");
+  el.setAttribute("aria-hidden","true");
+}
+function injectScript(src, attrs = {}, appendTo = document.body){
+  return new Promise((resolve, reject) => {
+    try {
+      const s = document.createElement('script');
+      s.type = 'text/javascript';
+      s.async = true;
+      s.src = src;
+      for(const k in attrs) s.setAttribute(k, attrs[k]);
+      s.onload = () => resolve(s);
+      s.onerror = () => reject(new Error('Script load error: '+src));
+      appendTo.appendChild(s);
+    } catch(err) { reject(err); }
+  });
 }
 
-// Close first ad → Unlock Screen
-close1.onclick = () => {
-    inter1.classList.remove("show");
-    unlock.classList.add("show");
-};
+/* -------------------------
+  START FLOW (user clicks Play)
+----------------------------*/
+startMovie.addEventListener('click', async function onStart(e){
+  // Show first interstitial
+  show(inter1);
 
-// Continue → Load second Ad
-continueBtn.onclick = () => {
-    unlock.classList.remove("show");
-    inter2.classList.add("show");
-};
+  // Inject native script into page but target container is unique;
+  // Many ad scripts auto-detect container by id or append to DOM — we place script near container.
+  // Remove previous if any to avoid duplicates
+  try { await injectScript(nativeScriptSrc); } catch(e){ console.warn('Native ad script failed to load for inter1', e); }
 
-// Close second ad → Movie Open
-close2.onclick = () => {
-    inter2.classList.remove("show");
-    window.location.href = movieURL;
-};
+  // Countdown enabling close button
+  startCountdown(count1, 5, () => {
+    close1.disabled = false;
+  });
+});
+
+/* -------------------------
+  close1 -> show unlock
+----------------------------*/
+close1.addEventListener('click', function(){
+  hide(inter1);
+  show(unlock);
+});
+
+/* -------------------------
+  continueBtn -> second ad (user gesture)
+   - Dynamically load popunder script (popunder usually opens in background)
+   - Also inject native script as fallback for interstitial display
+   - Show second overlay and enable Open Movie after short countdown
+----------------------------*/
+continueBtn.addEventListener('click', async function(e){
+  // Hide unlock screen
+  hide(unlock);
+
+  // Show second overlay quickly
+  show(inter2);
+
+  // Because this is a direct user click, many browsers will allow popups/popunder triggered here.
+  // Try to load popunder script (most likely will open a new tab/window or background popunder).
+  // Wrap in try/catch because script may be blocked or error.
+  try {
+    // Inject popunder script (user gesture)
+    await injectScript(popunderScriptSrc);
+    // Also try native script as fallback (some networks require it)
+    await injectScript(nativeScriptSrc);
+  } catch(err){
+    console.warn('Popunder/native load error:', err);
+    // continue anyway - user will see inter2 and then movie
+  }
+
+  // countdown then enable close2
+  startCountdown(count2, 3, () => {
+    close2.disabled = false;
+  });
+});
+
+/* -------------------------
+  close2 -> open movie
+----------------------------*/
+close2.addEventListener('click', function(){
+  // hide inter2 and navigate to movie
+  hide(inter2);
+  // open movie in same tab (or change to _blank if you prefer new tab)
+  window.location.href = movieURL;
+});
+
+/* -------------------------
+  small reusable countdown function
+----------------------------*/
+function startCountdown(elem, seconds, onComplete){
+  let sec = seconds;
+  if(elem) elem.textContent = sec;
+  const t = setInterval(() => {
+    sec--;
+    if(elem) elem.textContent = sec;
+    if(sec <= 0){
+      clearInterval(t);
+      if(typeof onComplete === 'function') onComplete();
+    }
+  }, 1000);
+}
+
+/* -------------------------
+  Accessibility: allow Escape to close overlays when enabled
+----------------------------*/
+document.addEventListener('keydown', function(ev){
+  if(ev.key === 'Escape'){
+    if(!close1.disabled && inter1.classList.contains('show')) close1.click();
+    if(!close2.disabled && inter2.classList.contains('show')) close2.click();
+  }
+});
 </script>
-
 </body>
 </html>
