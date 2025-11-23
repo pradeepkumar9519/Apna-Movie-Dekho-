@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Movie Player with Ads</title>
+<title>Movie Player with Ads (Fixed Close Timing)</title>
 <style>
 body { font-family: Arial,sans-serif; margin:0; padding:20px; background:#f2f2f2; }
 h2,p{margin:0 0 10px;}
@@ -12,6 +12,7 @@ h2,p{margin:0 0 10px;}
 .overlay.show{visibility:visible;opacity:1;}
 .ad-box{width:90%;max-width:760px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.35);position:relative;max-height:85vh;overflow:auto;text-align:center;}
 .close-btn{margin-top:15px;padding:10px 16px;background:#28a745;color:#fff;border:0;border-radius:8px;font-weight:700;cursor:pointer;display:none;}
+.countdown{font-weight:700;color:#333;}
 @media(max-width:480px){.close-btn{padding:14px 16px;font-size:16px;}}
 </style>
 </head>
@@ -26,102 +27,235 @@ h2,p{margin:0 0 10px;}
 <div id="firstAdOverlay" class="overlay">
   <div class="ad-box">
     <h3>Sponsored</h3>
-    <p>Ad loading... Please wait <span id="count1">10</span> seconds</p>
+    <p>Ad loading... Please wait <span id="count1" class="countdown">10</span> seconds</p>
     <div id="adContainer1"></div>
-    <button id="closeAd1" class="close-btn">Close Ad</button>
+    <button id="closeAd1" class="close-btn" aria-hidden="true" disabled>Close Ad</button>
   </div>
 </div>
 
-<!-- UNLOCK SCREEN WITH SECOND AD -->
+<!-- UNLOCK OVERLAY (SECOND AD) -->
 <div id="unlockOverlay" class="overlay">
   <div class="ad-box">
     <h3>Sponsored</h3>
-    <p>Ad loading... Please wait <span id="count2">10</span> seconds</p>
+    <p>Ad loading... Please wait <span id="count2" class="countdown">10</span> seconds</p>
     <div id="adContainer2"></div>
-    <button id="closeAd2" class="close-btn">Close Ad</button>
+    <button id="closeAd2" class="close-btn" aria-hidden="true" disabled>Close Ad</button>
   </div>
 </div>
 
 <script>
-// Movie link
+/* -----------------------
+  Configuration
+-------------------------*/
 const movieURL = "https://drive.google.com/file/d/1MFADDsjWFhEUqimdnv2RXbQTSQChP89q/view?usp=drivesdk";
 
-// Elements
-const startMovie = document.getElementById("startMovie");
-const firstAdOverlay = document.getElementById("firstAdOverlay");
-const closeAd1 = document.getElementById("closeAd1");
-const unlockOverlay = document.getElementById("unlockOverlay");
-const closeAd2 = document.getElementById("closeAd2");
-const adContainer1 = document.getElementById("adContainer1");
-const adContainer2 = document.getElementById("adContainer2");
-const count1 = document.getElementById("count1");
-const count2 = document.getElementById("count2");
+// Ad scripts (the ones you provided)
+const adScriptA = '//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js';
+const adInlineConfigKey = {
+  key: 'f451032ae374018aebd9809bf4cce8ef',
+  format: 'iframe',
+  height: 90,
+  width: 728,
+  params: {}
+};
+const adScriptB = '//www.highperformanceformat.com/f451032ae374018aebd9809bf4cce8ef/invoke.js';
 
-// Countdown function
-function startCountdown(el, seconds, callback){
-  let sec = seconds;
-  el.textContent = sec;
-  const timer = setInterval(()=>{
-    sec--;
-    el.textContent = sec;
-    if(sec<=0){
-      clearInterval(timer);
-      if(callback) callback();
-    }
-  },1000);
+// Timing (seconds)
+const TIMER_SECONDS = 10;
+const AD_LOAD_FALLBACK_MS = 9000; // if ad script doesn't trigger onload within ~9s, allow fallback (slightly less than timer)
+
+/* -----------------------
+  Elements
+-------------------------*/
+const startBtn = document.getElementById('startMovie');
+
+/* First overlay elements */
+const firstOverlay = document.getElementById('firstAdOverlay');
+const adContainer1 = document.getElementById('adContainer1');
+const closeAd1 = document.getElementById('closeAd1');
+const count1 = document.getElementById('count1');
+
+/* Second overlay elements */
+const unlockOverlay = document.getElementById('unlockOverlay');
+const adContainer2 = document.getElementById('adContainer2');
+const closeAd2 = document.getElementById('closeAd2');
+const count2 = document.getElementById('count2');
+
+/* -----------------------
+  State flags per overlay
+-------------------------*/
+let firstTimerDone = false;
+let firstAdLoaded = false;
+let firstAdFallback = false;
+let secondTimerDone = false;
+let secondAdLoaded = false;
+let secondAdFallback = false;
+
+/* -----------------------
+  Utility functions
+-------------------------*/
+function showOverlay(el){ el.classList.add('show'); }
+function hideOverlay(el){ el.classList.remove('show'); }
+
+function createInlineAdConfig(container, configObj){
+  // create inline script that sets atOptions (for your ad system)
+  const s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.text = `atOptions = ${JSON.stringify(configObj)};`;
+  container.appendChild(s);
 }
 
-// Dynamic ad injection helper
-function injectAd(container){
-  // First ad script
-  const s1 = document.createElement('script');
-  s1.type = 'text/javascript';
-  s1.src = '//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js';
-  container.appendChild(s1);
+/* Inject ad scripts and provide a "loaded" callback (via onload or fallback) */
+function injectAdsWithLoad(container, onLoadedCallback){
+  // Clear container (safety)
+  container.innerHTML = '';
 
-  // Second ad script
-  const s2 = document.createElement('script');
-  s2.type = 'text/javascript';
-  s2.innerHTML = `
-    atOptions = {
-      'key' : 'f451032ae374018aebd9809bf4cce8ef',
-      'format' : 'iframe',
-      'height' : 90,
-      'width' : 728,
-      'params' : {}
-    };
-  `;
-  container.appendChild(s2);
+  // Primary ad script (popunder or network)
+  const sA = document.createElement('script');
+  sA.type = 'text/javascript';
+  sA.src = adScriptA;
+  sA.async = true;
+  container.appendChild(sA);
 
-  const s3 = document.createElement('script');
-  s3.type = 'text/javascript';
-  s3.src = '//www.highperformanceformat.com/f451032ae374018aebd9809bf4cce8ef/invoke.js';
-  container.appendChild(s3);
+  // Inline config for second ad system
+  createInlineAdConfig(container, adInlineConfigKey);
+
+  // Secondary ad loader which commonly creates iframe
+  const sB = document.createElement('script');
+  sB.type = 'text/javascript';
+  sB.src = adScriptB;
+  sB.async = true;
+
+  // If this script fires onload, we treat ad as loaded
+  let loadedCalled = false;
+  sB.onload = () => {
+    if(loadedCalled) return;
+    loadedCalled = true;
+    onLoadedCallback && onLoadedCallback();
+  };
+
+  // Append and set fallback timeout: if onload doesn't fire in AD_LOAD_FALLBACK_MS, call fallback
+  container.appendChild(sB);
+
+  setTimeout(() => {
+    if(loadedCalled) return;
+    // mark fallback — sometimes ad providers create iframes without firing onload; allow fallback
+    onLoadedCallback && onLoadedCallback(true); // true indicates fallback
+  }, AD_LOAD_FALLBACK_MS);
 }
 
-// Step 1: Show first ad overlay
-startMovie.addEventListener('click', ()=>{
-  firstAdOverlay.classList.add('show');
-  injectAd(adContainer1);
-  startCountdown(count1,10,()=>{
+/* Show close button only when both timerDone and (adLoaded OR fallback) */
+function tryShowClose1(){
+  if(firstTimerDone && (firstAdLoaded || firstAdFallback)){
     closeAd1.style.display = 'inline-block';
-  });
-});
-
-// Close first ad → show unlock overlay
-closeAd1.addEventListener('click', ()=>{
-  firstAdOverlay.classList.remove('show');
-  unlockOverlay.classList.add('show');
-  injectAd(adContainer2);
-  startCountdown(count2,10,()=>{
+    closeAd1.disabled = false;
+    closeAd1.setAttribute('aria-hidden','false');
+  }
+}
+function tryShowClose2(){
+  if(secondTimerDone && (secondAdLoaded || secondAdFallback)){
     closeAd2.style.display = 'inline-block';
+    closeAd2.disabled = false;
+    closeAd2.setAttribute('aria-hidden','false');
+  }
+}
+
+/* Countdown that sets timerDone flag when finished */
+function startTimerForFirst(){
+  let sec = TIMER_SECONDS;
+  count1.textContent = sec;
+  const t1 = setInterval(()=>{
+    sec--;
+    count1.textContent = sec;
+    if(sec <= 0){
+      clearInterval(t1);
+      firstTimerDone = true;
+      tryShowClose1();
+    }
+  }, 1000);
+}
+function startTimerForSecond(){
+  let sec = TIMER_SECONDS;
+  count2.textContent = sec;
+  const t2 = setInterval(()=>{
+    sec--;
+    count2.textContent = sec;
+    if(sec <= 0){
+      clearInterval(t2);
+      secondTimerDone = true;
+      tryShowClose2();
+    }
+  }, 1000);
+}
+
+/* -----------------------
+  Flow handlers
+-------------------------*/
+startBtn.addEventListener('click', ()=>{
+  // Reset states (if user repeated)
+  firstTimerDone = firstAdLoaded = firstAdFallback = false;
+  secondTimerDone = secondAdLoaded = secondAdFallback = false;
+  closeAd1.style.display = 'none';
+  closeAd1.disabled = true;
+  closeAd1.setAttribute('aria-hidden','true');
+  closeAd2.style.display = 'none';
+  closeAd2.disabled = true;
+  closeAd2.setAttribute('aria-hidden','true');
+  count1.textContent = TIMER_SECONDS;
+  count2.textContent = TIMER_SECONDS;
+  adContainer1.innerHTML = '';
+  adContainer2.innerHTML = '';
+
+  // Show first overlay
+  showOverlay(firstOverlay);
+
+  // Start timer immediately
+  startTimerForFirst();
+
+  // Inject first ad; when script signals loaded (or fallback), set flag
+  injectAdsWithLoad(adContainer1, function(fallback){
+    if(fallback) {
+      firstAdFallback = true;
+    } else {
+      firstAdLoaded = true;
+    }
+    tryShowClose1();
   });
 });
 
-// Close unlock ad → open movie
+/* Close first ad -> open unlock overlay (second ad) */
+closeAd1.addEventListener('click', ()=>{
+  // Hide first overlay
+  hideOverlay(firstOverlay);
+
+  // Show unlock overlay
+  showOverlay(unlockOverlay);
+
+  // Start second timer and inject second ad
+  startTimerForSecond();
+  injectAdsWithLoad(adContainer2, function(fallback){
+    if(fallback){
+      secondAdFallback = true;
+    } else {
+      secondAdLoaded = true;
+    }
+    tryShowClose2();
+  });
+});
+
+/* Close second ad -> open movie */
 closeAd2.addEventListener('click', ()=>{
-  unlockOverlay.classList.remove('show');
+  hideOverlay(unlockOverlay);
+  // navigate to movie
   window.location.href = movieURL;
+});
+
+/* Accessibility: allow Escape only after close button enabled */
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    if(!closeAd1.disabled && firstOverlay.classList.contains('show')) closeAd1.click();
+    if(!closeAd2.disabled && unlockOverlay.classList.contains('show')) closeAd2.click();
+  }
 });
 </script>
 </body>
