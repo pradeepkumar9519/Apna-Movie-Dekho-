@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movie With Ads</title>
+
+<style>
+body { font-family: Arial; margin:0; padding:20px; background:#f2f2f2; }
+.btn { padding:12px 20px; background:#007bff; color:#fff; border:0; border-radius:6px; cursor:pointer; font-size:18px; }
+
+/* Overlay Interstitial */
+.overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.75);
+    display:flex; align-items:center; justify-content:center;
+    z-index:9999; visibility:hidden; opacity:0; transition:.2s;
+}
+.overlay.show { visibility:visible; opacity:1; }
+
+.ad-box {
+    width:90%; max-width:900px; background:#fff; border-radius:10px;
+    padding:12px; box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+.close-btn[disabled] { opacity:.5; cursor:not-allowed; }
+
+/* Unlock Screen */
+#unlockScreen {
+    position:fixed; inset:0; background:#111;
+    color:#fff; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:9999; visibility:hidden; opacity:0; transition:.25s;
+}
+#unlockScreen.show { visibility:visible; opacity:1; }
+
+.unlock-btn {
+    margin-top:20px; padding:14px 22px;
+    background:#00c851; color:#fff;
+    border:0; border-radius:8px; font-size:20px; cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Movie Player</h2>
+<p>Movie dekhne se pehle short ads dikhaye jayenge.</p>
+
+<button id="startMovie" class="btn">Play Movie</button>
+
+<!-- ───── FIRST INTERSTITIAL POPUP ───── -->
+<div id="interstitial1" class="overlay">
+    <div class="ad-box">
+        <h3>Sponsored</h3>
+        <p>Ad loading... Please wait <span id="count1">5</span> sec</p>
+
+        <!-- Your Adsterra Interstitial (native) -->
+        <script async data-cfasync="false" src="//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js"></script>
+        <div id="container-03a29260fe0435d3922b726bb7da0b06"></div>
+
+        <br>
+        <button id="close1" class="btn" disabled>Close Ad</button>
+    </div>
+</div>
+
+<!-- ───── UNLOCK SCREEN ───── -->
+<div id="unlockScreen">
+    <h2>Movie Unlock Required</h2>
+    <p>Continue dabate hi movie unlock ho jayegi</p>
+    <button id="continueBtn" class="unlock-btn">Continue</button>
+</div>
+
+<!-- ───── SECOND INTERSTITIAL / POPUNDER ───── -->
+<div id="interstitial2" class="overlay">
+    <div class="ad-box">
+        <h3>Sponsored</h3>
+        <p>Ad will close soon...</p>
+
+        <!-- OPTION 1 → Native Interstitial AGAIN -->
+        <script async data-cfasync="false" src="//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js"></script>
+        <div id="container-03a29260fe0435d3922b726bb7da0b06"></div>
+
+        <!-- OPTION 2 → Your POPUNDER CODE (LEGAL because user action triggers it) -->
+        <!-- UNCOMMENT if you want popunder: 
+        <script type='text/javascript' src='//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js'></script>
+        -->
+        <br>
+
+        <button id="close2" class="btn">Open Movie</button>
+    </div>
+</div>
+
+
+<script>
+// Movie Link
+const movieURL = "https://drive.google.com/file/d/1MFADDsjWFhEUqimdnv2RXbQTSQChP89q/view?usp=drivesdk";
+
+// Elements
+const startMovie = document.getElementById("startMovie");
+const inter1 = document.getElementById("interstitial1");
+const inter2 = document.getElementById("interstitial2");
+const unlock = document.getElementById("unlockScreen");
+const close1 = document.getElementById("close1");
+const close2 = document.getElementById("close2");
+const continueBtn = document.getElementById("continueBtn");
+const count1 = document.getElementById("count1");
+
+// Step 1 → User starts
+startMovie.onclick = () => {
+    inter1.classList.add("show");
+    startCountdown1();
+};
+
+// Step 1 Count
+function startCountdown1(){
+    let sec = 5;
+    const timer = setInterval(() => {
+        sec--;
+        count1.textContent = sec;
+        if(sec <= 0){
+            clearInterval(timer);
+            close1.disabled = false;
+        }
+    },1000);
+}
+
+// Close first ad → Unlock Screen
+close1.onclick = () => {
+    inter1.classList.remove("show");
+    unlock.classList.add("show");
+};
+
+// Continue → Load second Ad
+continueBtn.onclick = () => {
+    unlock.classList.remove("show");
+    inter2.classList.add("show");
+};
+
+// Close second ad → Movie Open
+close2.onclick = () => {
+    inter2.classList.remove("show");
+    window.location.href = movieURL;
+};
+</script>
+
+</body>
+</html>
