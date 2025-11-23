@@ -41,6 +41,7 @@ h2,p{margin:0 0 10px;}
   <div style="text-align:center;padding:22px;">
     <h2>Movie Unlock Required</h2>
     <p>Continue pe tap karne se second ad dikhega</p>
+    <p>Ad loading... Please wait <span id="count2">5</span>s</p>
     <div id="container-ad-unlock"></div>
     <button id="closeUnlockAd" class="close-btn" disabled>Close Ad</button>
     <button id="openMovie" class="unlock-btn" style="display:none;">Open Movie</button>
@@ -58,6 +59,8 @@ const close1 = document.getElementById("close1");
 const unlock = document.getElementById("unlockScreen");
 const closeUnlockAd = document.getElementById("closeUnlockAd");
 const openMovie = document.getElementById("openMovie");
+const count1 = document.getElementById("count1");
+const count2 = document.getElementById("count2");
 
 // Countdown helper
 function startCountdown(el, seconds, callback){
@@ -87,7 +90,7 @@ startMovie.addEventListener('click', ()=>{
   inter1.classList.add("show");
   const container1 = document.getElementById("container-ad-1");
   injectAd(container1,"//pl27073688.effectivegatecpm.com/03a29260fe0435d3922b726bb7da0b06/invoke.js");
-  startCountdown(document.getElementById("count1"),5,()=>{close1.disabled=false;});
+  startCountdown(count1,5,()=>{close1.disabled=false;});
 });
 
 // Close first ad → unlock screen
@@ -97,8 +100,7 @@ close1.addEventListener('click', ()=>{
   // Load second ad dynamically
   const containerUnlock = document.getElementById("container-ad-unlock");
   injectAd(containerUnlock,"//pl26652474.effectivegatecpm.com/06/9e/db/069edbe4b888f96f8a2f6573aeb04ef5.js");
-  // enable Close button after 5s
-  setTimeout(()=>{closeUnlockAd.disabled=false;},5000);
+  startCountdown(count2,5,()=>{closeUnlockAd.disabled=false;});
 });
 
 // Close unlock ad → show Open Movie
@@ -114,4 +116,3 @@ openMovie.addEventListener('click', ()=>{
 </script>
 </body>
 </html>
-￼Enter
